@@ -1,0 +1,16 @@
+[
+{
+  "modid": "simplewoodenpipes",
+  "name": "SimpleWoodenPipes",
+  "description": "Simple Wooden Pipes.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["Dogboy21"],
+  "credits": "Models created by paulisview",
+  "logoFile": "assets/simplewoodenpipes/logo.png",
+  "screenshots": [],
+  "dependencies": []
+}
+]
