@@ -4,10 +4,12 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.properties.PropertyBool;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -18,6 +20,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -28,6 +31,8 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
+
+import xyz.dogboy.swp.Registry;
 import xyz.dogboy.swp.tiles.TilePipe;
 
 public class BlockPipe extends BlockWoodenVariation {
@@ -50,6 +55,9 @@ public class BlockPipe extends BlockWoodenVariation {
 
     public BlockPipe() {
         super("pipe", Material.WOOD, MapColor.WOOD);
+        this.setHardness(1.0F);
+        this.setResistance(2.0F);
+        this.setSoundType(SoundType.WOOD);
 
         this.setDefaultState(this.getBlockState().getBaseState()
                 .withProperty(NORTH, false)
@@ -229,4 +237,44 @@ public class BlockPipe extends BlockWoodenVariation {
                 .withProperty(UP, this.canConnectTo(world, pos, EnumFacing.UP))
                 .withProperty(DOWN, this.canConnectTo(world, pos, EnumFacing.DOWN));
     }
+
+    public ItemStack getItem(IBlockAccess world, BlockPos pos) {
+        ItemStack itemStack = new ItemStack(Registry.PIPE_ITEM);
+        TileEntity tileEntity = world.getTileEntity(pos);
+        if (tileEntity instanceof TilePipe) {
+            itemStack.setTagCompound(new NBTTagCompound());
+            itemStack.getTagCompound().setTag("BaseBlock", tileEntity.getTileData().getCompoundTag("BaseBlock").copy());
+        }
+        return itemStack;
+    }
+
+    @Override
+    public ItemStack getItem(World worldIn, BlockPos pos, IBlockState state) {
+        return this.getItem(worldIn, pos);
+    }
+
+    @Override
+    public boolean removedByPlayer(IBlockState state, World world, BlockPos pos, EntityPlayer player, boolean willHarvest) {
+        if (willHarvest) {
+            return true;
+        }
+        return super.removedByPlayer(state, world, pos, player, willHarvest);
+    }
+
+    @Override
+    public void harvestBlock(World world, EntityPlayer player, BlockPos pos, IBlockState state, @Nullable TileEntity te, ItemStack tool) {
+        super.harvestBlock(world, player, pos, state, te, tool);
+        world.setBlockToAir(pos);
+    }
+
+    @Override
+    public void getDrops(NonNullList<ItemStack> drops, IBlockAccess world, BlockPos pos, IBlockState state, int fortune) {
+        drops.add(this.getItem(world, pos));
+    }
+
+    @Override
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face) {
+        return BlockFaceShape.CENTER;
+    }
+
 }

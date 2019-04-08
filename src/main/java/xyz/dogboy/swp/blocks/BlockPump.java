@@ -4,10 +4,12 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.properties.PropertyBool;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -32,6 +34,9 @@ public class BlockPump extends BlockWoodenVariation {
 
     public BlockPump() {
         super("pump", Material.IRON, MapColor.IRON);
+        this.setHardness(4.0F);
+        this.setResistance(6.0F);
+        this.setSoundType(SoundType.METAL);
 
         this.setDefaultState(this.getBlockState().getBaseState().withProperty(CONNECTED, false));
     }
@@ -106,4 +111,12 @@ public class BlockPump extends BlockWoodenVariation {
         return super.getExtendedState(state, world, pos).withProperty(CONNECTED, this.canConnectTo(world, pos, EnumFacing.UP));
     }
 
+    @Override
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face) {
+        if (face == EnumFacing.UP) {
+            return BlockFaceShape.CENTER;
+        } else {
+            return BlockFaceShape.UNDEFINED;
+        }
+    }
 }

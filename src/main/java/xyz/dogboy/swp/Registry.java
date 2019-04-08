@@ -68,7 +68,8 @@ public class Registry {
             output.setCount(6);
 
             ShapedRecipes recipe = new ShapedRecipes("", 3, 3, ingredients, output);
-            event.getRegistry().register(recipe.setRegistryName(new ResourceLocation(Reference.modid, "pipe_" + plank.getItem().getRegistryName().getResourceDomain() + "_" + plank.getItem().getRegistryName().getResourcePath() + "_" + plank.getMetadata())));
+            event.getRegistry().register(recipe.setRegistryName(new ResourceLocation(Reference.modid, String.format("pipe_%s_%s_%d",
+                    plank.getItem().getRegistryName().getResourceDomain(), plank.getItem().getRegistryName().getResourcePath(), plank.getMetadata()))));
         }
     }
 
