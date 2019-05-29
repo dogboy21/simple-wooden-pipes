@@ -1,0 +1,2 @@
+# Simple Wooden Pipes [![](http://cf.way2muchnoise.eu/simple-wooden-pipes.svg)](https://minecraft.curseforge.com/projects/simple-wooden-pipes) [![](http://cf.way2muchnoise.eu/versions/simple-wooden-pipes.svg)](https://minecraft.curseforge.com/projects/simple-wooden-pipes)
+Simple Wooden Pipes is a Minecraft mod aimed to provide a simple and low-tech way of transporting Liquids and generating Water.
