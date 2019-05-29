@@ -4,6 +4,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Blocks;
@@ -13,6 +14,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.NonNullList;
 import net.minecraft.world.World;
 
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import xyz.dogboy.swp.Registry;
 import xyz.dogboy.swp.SimpleWoodenPipes;
 
@@ -58,9 +61,13 @@ public class ItemBlockPipe extends ItemBlock {
     }
 
     @Override
+    @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
         super.addInformation(stack, worldIn, tooltip, flagIn);
         tooltip.add(this.getBaseBlock(stack).getDisplayName());
+        tooltip.add("");
+        tooltip.add(I18n.format("simplewoodenpipes.tooltip.pipe.low_temp_only"));
+        tooltip.add(I18n.format("simplewoodenpipes.tooltip.pipe.add_piston"));
     }
 
 }

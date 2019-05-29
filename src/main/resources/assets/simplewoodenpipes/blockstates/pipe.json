@@ -63,6 +63,66 @@
         "x": 90,
         "uvlock": false
       }
+    },
+
+    {
+      "when": {
+        "extract_north": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:pipe_extraction",
+        "uvlock": false
+      }
+    },
+    {
+      "when": {
+        "extract_east": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:pipe_extraction",
+        "y": 90,
+        "uvlock": false
+      }
+    },
+    {
+      "when": {
+        "extract_south": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:pipe_extraction",
+        "y": 180,
+        "uvlock": false
+      }
+    },
+    {
+      "when": {
+        "extract_west": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:pipe_extraction",
+        "y": 270,
+        "uvlock": false
+      }
+    },
+    {
+      "when": {
+        "extract_up": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:pipe_extraction",
+        "x": -90,
+        "uvlock": false
+      }
+    },
+    {
+      "when": {
+        "extract_down": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:pipe_extraction",
+        "x": 90,
+        "uvlock": false
+      }
     }
   ]
 }

@@ -15,6 +15,9 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.SoundEvents;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -23,8 +26,10 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.ChunkCache;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.property.ExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.fluids.FluidStack;
@@ -34,6 +39,7 @@ import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 import xyz.dogboy.swp.Registry;
 import xyz.dogboy.swp.tiles.TilePipe;
+import xyz.dogboy.swp.tiles.TilePump;
 
 public class BlockPipe extends BlockWoodenVariation {
 
@@ -44,6 +50,14 @@ public class BlockPipe extends BlockWoodenVariation {
     public static final PropertyBool WEST = PropertyBool.create("west");
     public static final PropertyBool UP = PropertyBool.create("up");
     public static final PropertyBool DOWN = PropertyBool.create("down");
+
+    public static final PropertyBool EXTRACTION = PropertyBool.create("extraction");
+    public static final PropertyBool EXTRACT_NORTH = PropertyBool.create("extract_north");
+    public static final PropertyBool EXTRACT_EAST = PropertyBool.create("extract_east");
+    public static final PropertyBool EXTRACT_SOUTH = PropertyBool.create("extract_south");
+    public static final PropertyBool EXTRACT_WEST = PropertyBool.create("extract_west");
+    public static final PropertyBool EXTRACT_UP = PropertyBool.create("extract_up");
+    public static final PropertyBool EXTRACT_DOWN = PropertyBool.create("extract_down");
 
     public static final AxisAlignedBB MIDDLE_BB = new AxisAlignedBB(0.25, 0.25, 0.25, 0.75, 0.75, 0.75);
     public static final AxisAlignedBB NORTH_BB = new AxisAlignedBB(0.3125, 0.3125, 0, 0.6875, 0.6875, 0.25);
@@ -65,7 +79,14 @@ public class BlockPipe extends BlockWoodenVariation {
                 .withProperty(SOUTH, false)
                 .withProperty(WEST, false)
                 .withProperty(UP, false)
-                .withProperty(DOWN, false));
+                .withProperty(DOWN, false)
+                .withProperty(EXTRACTION, false)
+                .withProperty(EXTRACT_NORTH, false)
+                .withProperty(EXTRACT_EAST, false)
+                .withProperty(EXTRACT_SOUTH, false)
+                .withProperty(EXTRACT_WEST, false)
+                .withProperty(EXTRACT_UP, false)
+                .withProperty(EXTRACT_DOWN, false));
     }
 
     @Override
@@ -124,16 +145,24 @@ public class BlockPipe extends BlockWoodenVariation {
 
     @Override
     public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        IFluidHandlerItem fluidHandler = playerIn.getHeldItem(hand).getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null);
-        if (fluidHandler == null) {
-            return false;
-        }
-
         TilePipe pipe = (TilePipe) worldIn.getTileEntity(pos);
         if (pipe == null) {
             return false;
         }
 
+        IFluidHandlerItem fluidHandler = playerIn.getHeldItem(hand).getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null);
+        if (fluidHandler != null) {
+            return this.handleFluidHandlerActivate(playerIn, hand, pipe, fluidHandler);
+        }
+
+        if (playerIn.getHeldItem(hand).getItem() == Item.getItemFromBlock(Blocks.PISTON) || playerIn.isSneaking()) {
+            return this.handlePistonActivate(playerIn, hand, pipe);
+        }
+
+        return false;
+    }
+
+    private boolean handleFluidHandlerActivate(EntityPlayer playerIn, EnumHand hand, TilePipe pipe, IFluidHandlerItem fluidHandler) {
         IFluidTankProperties tankProperties = pipe.getTankProperties()[0];
         int maxDrain = tankProperties.getCapacity() - (tankProperties.getContents() == null ? 0 : tankProperties.getContents().amount);
         if (maxDrain <= 0) {
@@ -157,6 +186,38 @@ public class BlockPipe extends BlockWoodenVariation {
 
         pipe.fill(drained, true);
         playerIn.setHeldItem(hand, fluidHandler.getContainer());
+
+        return true;
+    }
+
+    private boolean handlePistonActivate(EntityPlayer playerIn, EnumHand hand, TilePipe pipe) {
+        if (playerIn.isSneaking()) {
+            if (!pipe.isExtractionEnabled()) {
+                return false;
+            }
+
+            pipe.setExtractionEnabled(false);
+
+            if (!playerIn.capabilities.isCreativeMode) {
+                if (!playerIn.addItemStackToInventory(new ItemStack(Blocks.PISTON))) {
+                    playerIn.dropItem(new ItemStack(Blocks.PISTON), false);
+                }
+            }
+
+            playerIn.playSound(SoundEvents.BLOCK_ANVIL_PLACE, 1, 1);
+        } else {
+            if (pipe.isExtractionEnabled()) {
+                return false;
+            }
+
+            pipe.setExtractionEnabled(true);
+
+            if (!playerIn.capabilities.isCreativeMode) {
+                playerIn.getHeldItem(hand).shrink(1);
+            }
+
+            playerIn.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+        }
 
         return true;
     }
@@ -204,13 +265,15 @@ public class BlockPipe extends BlockWoodenVariation {
 
     @Override
     protected BlockStateContainer createBlockState() {
-        return new ExtendedBlockState(this, new IProperty[]{ NORTH, EAST, SOUTH, WEST, UP, DOWN },
+        return new ExtendedBlockState(this,
+                new IProperty[]{ NORTH, EAST, SOUTH, WEST, UP, DOWN, EXTRACTION, EXTRACT_NORTH, EXTRACT_EAST, EXTRACT_SOUTH, EXTRACT_WEST, EXTRACT_UP, EXTRACT_DOWN },
                 new IUnlistedProperty[]{ BlockWoodenVariation.TEXTURE });
     }
 
-    public boolean canConnectTo(IBlockAccess world, BlockPos pipePos, EnumFacing direction) {
+    public boolean canConnectTo(IBlockAccess world, BlockPos pipePos, EnumFacing direction, boolean excludePipe) {
         TileEntity tileEntity = world.getTileEntity(pipePos.offset(direction));
-        return tileEntity != null && tileEntity.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite());
+        return tileEntity != null && tileEntity.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite())
+                && (!excludePipe || !(tileEntity instanceof TilePipe || tileEntity instanceof TilePump));
     }
 
     public int getMetaFromState(IBlockState state) {
@@ -219,23 +282,24 @@ public class BlockPipe extends BlockWoodenVariation {
 
     @Override
     public IBlockState getActualState(IBlockState state, IBlockAccess worldIn, BlockPos pos) {
-        return state.withProperty(NORTH, this.canConnectTo(worldIn, pos, EnumFacing.NORTH))
-                .withProperty(EAST, this.canConnectTo(worldIn, pos, EnumFacing.EAST))
-                .withProperty(SOUTH, this.canConnectTo(worldIn, pos, EnumFacing.SOUTH))
-                .withProperty(WEST, this.canConnectTo(worldIn, pos, EnumFacing.WEST))
-                .withProperty(UP, this.canConnectTo(worldIn, pos, EnumFacing.UP))
-                .withProperty(DOWN, this.canConnectTo(worldIn, pos, EnumFacing.DOWN));
-    }
+        TileEntity tileentity = worldIn instanceof ChunkCache
+                ? ((ChunkCache)worldIn).getTileEntity(pos, Chunk.EnumCreateEntityType.CHECK)
+                : worldIn.getTileEntity(pos);
+        boolean extraction = tileentity instanceof TilePipe && ((TilePipe) tileentity).isExtractionEnabled();
 
-    @Override
-    public IBlockState getExtendedState(IBlockState state, IBlockAccess world, BlockPos pos) {
-        return super.getExtendedState(state, world, pos)
-                .withProperty(NORTH, this.canConnectTo(world, pos, EnumFacing.NORTH))
-                .withProperty(EAST, this.canConnectTo(world, pos, EnumFacing.EAST))
-                .withProperty(SOUTH, this.canConnectTo(world, pos, EnumFacing.SOUTH))
-                .withProperty(WEST, this.canConnectTo(world, pos, EnumFacing.WEST))
-                .withProperty(UP, this.canConnectTo(world, pos, EnumFacing.UP))
-                .withProperty(DOWN, this.canConnectTo(world, pos, EnumFacing.DOWN));
+        return state.withProperty(NORTH, this.canConnectTo(worldIn, pos, EnumFacing.NORTH, false))
+                .withProperty(EAST, this.canConnectTo(worldIn, pos, EnumFacing.EAST, false))
+                .withProperty(SOUTH, this.canConnectTo(worldIn, pos, EnumFacing.SOUTH, false))
+                .withProperty(WEST, this.canConnectTo(worldIn, pos, EnumFacing.WEST, false))
+                .withProperty(UP, this.canConnectTo(worldIn, pos, EnumFacing.UP, false))
+                .withProperty(DOWN, this.canConnectTo(worldIn, pos, EnumFacing.DOWN, false))
+                .withProperty(EXTRACTION, extraction)
+                .withProperty(EXTRACT_NORTH, extraction && this.canConnectTo(worldIn, pos, EnumFacing.NORTH, true))
+                .withProperty(EXTRACT_EAST, extraction && this.canConnectTo(worldIn, pos, EnumFacing.EAST, true))
+                .withProperty(EXTRACT_SOUTH, extraction && this.canConnectTo(worldIn, pos, EnumFacing.SOUTH, true))
+                .withProperty(EXTRACT_WEST, extraction && this.canConnectTo(worldIn, pos, EnumFacing.WEST, true))
+                .withProperty(EXTRACT_UP, extraction && this.canConnectTo(worldIn, pos, EnumFacing.UP, true))
+                .withProperty(EXTRACT_DOWN, extraction && this.canConnectTo(worldIn, pos, EnumFacing.DOWN, true));
     }
 
     public ItemStack getItem(IBlockAccess world, BlockPos pos) {
@@ -270,6 +334,11 @@ public class BlockPipe extends BlockWoodenVariation {
     @Override
     public void getDrops(NonNullList<ItemStack> drops, IBlockAccess world, BlockPos pos, IBlockState state, int fortune) {
         drops.add(this.getItem(world, pos));
+
+        TileEntity tileEntity = world.getTileEntity(pos);
+        if (tileEntity instanceof TilePipe && ((TilePipe) tileEntity).isExtractionEnabled()) {
+            drops.add(new ItemStack(Blocks.PISTON));
+        }
     }
 
     @Override
