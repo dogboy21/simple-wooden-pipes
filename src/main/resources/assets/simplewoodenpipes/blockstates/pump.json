@@ -1,13 +1,7 @@
 {
   "variants":{
-    "connected=true": {
-      "model": "simplewoodenpipes:pump"
-    },
-    "connected=false": {
-      "model": "simplewoodenpipes:pump_unconnected"
-    },
-    "inventory": {
-      "model": "simplewoodenpipes:pump"
+    "": {
+      "model": "simplewoodenpipes:block/pump_unconnected"
     }
   }
 }

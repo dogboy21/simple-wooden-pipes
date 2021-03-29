@@ -1,0 +1,6 @@
+{
+  "parent": "simplewoodenpipes:item/pipe",
+  "textures": {
+    "wood": "minecraft:block/warped_planks"
+  }
+}
