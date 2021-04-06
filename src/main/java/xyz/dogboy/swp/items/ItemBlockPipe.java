@@ -8,18 +8,16 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.NonNullList;
 import net.minecraft.world.World;
 
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import xyz.dogboy.swp.Registry;
-import xyz.dogboy.swp.SimpleWoodenPipes;
+import xyz.dogboy.swp.blocks.BlockPipe;
 
-public class ItemBlockPipe extends ItemBlock {
+public class ItemBlockPipe extends ItemBlockWoodenVariation {
 
     public ItemBlockPipe() {
         super(Registry.PIPE);
@@ -27,47 +25,27 @@ public class ItemBlockPipe extends ItemBlock {
 
     @Override
     public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> items) {
+        super.getSubItems(tab, items);
+
         if (this.isInCreativeTab(tab)) {
-            for (ItemStack plank : SimpleWoodenPipes.getAllPlanks()) {
-                items.add(this.getWithBaseBlock(plank));
+            for (ItemStack stone : BlockPipe.stoneVariants) {
+                items.add(this.getWithBaseBlock(stone));
             }
         }
-    }
-
-    public ItemStack getWithBaseBlock(ItemStack baseBlock) {
-        ItemStack item = new ItemStack(Registry.PIPE_ITEM);
-
-        if (!item.hasTagCompound()) {
-            item.setTagCompound(new NBTTagCompound());
-        }
-
-        NBTTagCompound baseBlockNbt = new NBTTagCompound();
-        baseBlock.writeToNBT(baseBlockNbt);
-        item.getTagCompound().setTag("BaseBlock", baseBlockNbt);
-        return item;
-    }
-
-    public ItemStack getBaseBlock(ItemStack item) {
-        if (item.hasTagCompound()) {
-            NBTTagCompound baseBlockNbt = item.getTagCompound().getCompoundTag("BaseBlock");
-            ItemStack baseBlock = new ItemStack(baseBlockNbt);
-
-            if (!baseBlock.isEmpty() && Block.getBlockFromItem(baseBlock.getItem()) != Blocks.AIR) {
-                return baseBlock;
-            }
-        }
-
-        return new ItemStack(Blocks.PLANKS);
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
         super.addInformation(stack, worldIn, tooltip, flagIn);
-        tooltip.add(this.getBaseBlock(stack).getDisplayName());
         tooltip.add("");
-        tooltip.add(I18n.format("simplewoodenpipes.tooltip.pipe.low_temp_only"));
-        tooltip.add(I18n.format("simplewoodenpipes.tooltip.pipe.add_piston"));
+
+        if (Block.getBlockFromItem(this.getBaseBlock(stack).getItem()) != Blocks.STONE) {
+            tooltip.add(I18n.format("simplewoodenpipes.tooltip.pipe.low_temp_only"));
+        }
+
+        ItemStack extractUpgrade = BlockPipe.getExtractionUpgrade();
+        tooltip.add(I18n.format("simplewoodenpipes.tooltip.pipe.add_upgrade", extractUpgrade.getDisplayName()));
     }
 
 }

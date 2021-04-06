@@ -61,10 +61,10 @@ task signJar(type: SignJar, dependsOn: reobfJar) { // https://gist.github.com/ma
         project.hasProperty('keyStore')
     }
 
-    keyStore = project.keyStore // This needs to be a path to the keystore file
-    alias = project.keyStoreAlias
-    storePass = project.keyStorePass
-    keyPass = project.keyStoreKeyPass
+    keyStore = project.findProperty('keyStore') // This needs to be a path to the keystore file
+    alias = project.findProperty('keyStoreAlias')
+    storePass = project.findProperty('keyStorePass')
+    keyPass = project.findProperty('keyStoreKeyPass')
     inputFile = jar.archivePath
     outputFile = jar.archivePath
 }

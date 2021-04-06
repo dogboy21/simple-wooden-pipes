@@ -4,6 +4,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -30,9 +31,11 @@ public class TilePipe extends PersistantSyncableTileEntity implements ITickable,
     private int amount;
     private boolean extraction;
 
+    private ItemStack cachedBaseBlock;
+
     @Override
     public void update() {
-        if (this.fluid != null && this.fluid.getTemperature() >= 550) {
+        if (Block.getBlockFromItem(this.getBaseBlock().getItem()) != Blocks.STONE && this.fluid != null && this.fluid.getTemperature() >= 550) {
             this.getWorld().setBlockState(this.getPos(), Blocks.FIRE.getDefaultState());
             return;
         }
@@ -40,7 +43,8 @@ public class TilePipe extends PersistantSyncableTileEntity implements ITickable,
         for (EnumFacing facing : EnumFacing.values()) {
             BlockPos pos = this.getPos().offset(facing);
             TileEntity tileEntity = this.getWorld().getTileEntity(pos);
-            if (tileEntity == null) {
+
+            if (!this.canConnectTo(tileEntity, facing, false)) {
                 continue;
             }
 
@@ -225,12 +229,24 @@ public class TilePipe extends PersistantSyncableTileEntity implements ITickable,
         this.extraction = tagCompound.getBoolean("CanExtract");
     }
 
+    public ItemStack getBaseBlock() {
+        if (this.cachedBaseBlock == null) {
+            if (!this.getTileData().hasKey("BaseBlock")) {
+                return new ItemStack(Blocks.AIR);
+            }
+
+            NBTTagCompound baseBlock = this.getTileData().getCompoundTag("BaseBlock");
+            this.cachedBaseBlock = new ItemStack(baseBlock);
+        }
+
+        return this.cachedBaseBlock;
+    }
+
     public IExtendedBlockState writeExtendedState(IExtendedBlockState state) {
         String texture = this.getTileData().getString("Texture");
 
         if (texture.isEmpty()) {
-            NBTTagCompound baseBlock = this.getTileData().getCompoundTag("BaseBlock");
-            ItemStack stack = new ItemStack(baseBlock);
+            ItemStack stack = this.getBaseBlock();
             if (!stack.isEmpty()) {
                 Block block = Block.getBlockFromItem(stack.getItem());
                 if (block != Blocks.AIR) {
@@ -241,6 +257,37 @@ public class TilePipe extends PersistantSyncableTileEntity implements ITickable,
         }
 
         return state.withProperty(BlockWoodenVariation.TEXTURE, texture.isEmpty() ? "minecraft:blocks/planks_oak" : texture);
+    }
+
+    public boolean canConnectTo(EnumFacing direction, boolean excludePipe) {
+        return this.canConnectTo(this.getWorld().getTileEntity(this.getPos().offset(direction)), direction, excludePipe);
+    }
+
+    public boolean canConnectTo(TileEntity tileEntity, EnumFacing direction, boolean excludePipe) {
+        if (tileEntity == null) {
+            return false;
+        }
+
+        if (tileEntity instanceof TilePump) {
+            return direction == EnumFacing.DOWN && !excludePipe;
+        }
+
+        if (tileEntity instanceof TilePipe) {
+            if (excludePipe) {
+                return false;
+            }
+
+            TilePipe otherPipe = (TilePipe) tileEntity;
+            Item stoneItem = Item.getItemFromBlock(Blocks.STONE);
+
+            if (SWPConfig.variantInterconnection) {
+                return (otherPipe.getBaseBlock().getItem() == stoneItem) == (this.getBaseBlock().getItem() == stoneItem);
+            }
+
+            return otherPipe.getBaseBlock().isItemEqual(this.getBaseBlock());
+        }
+
+        return tileEntity.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite());
     }
 
 }

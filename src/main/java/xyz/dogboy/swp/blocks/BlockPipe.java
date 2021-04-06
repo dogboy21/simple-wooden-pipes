@@ -1,8 +1,11 @@
 package xyz.dogboy.swp.blocks;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Joiner;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
@@ -19,11 +22,14 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.JsonToNBT;
+import net.minecraft.nbt.NBTException;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.NonNullList;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.ChunkCache;
@@ -38,11 +44,12 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 import xyz.dogboy.swp.Registry;
+import xyz.dogboy.swp.config.SWPConfig;
 import xyz.dogboy.swp.tiles.TilePipe;
-import xyz.dogboy.swp.tiles.TilePump;
 
 public class BlockPipe extends BlockWoodenVariation {
 
+    private static ItemStack extractionUpgrade;
 
     public static final PropertyBool NORTH = PropertyBool.create("north");
     public static final PropertyBool EAST = PropertyBool.create("east");
@@ -67,11 +74,21 @@ public class BlockPipe extends BlockWoodenVariation {
     public static final AxisAlignedBB UP_BB = new AxisAlignedBB(0.3125, 1, 0.3125, 0.6875, 0.75, 0.6875);
     public static final AxisAlignedBB DOWN_BB = new AxisAlignedBB(0.3125, 0, 0.3125, 0.6875, 0.25, 0.6875);
 
+    public static final List<ItemStack> stoneVariants = Collections.unmodifiableList(Arrays.asList(
+            new ItemStack(Blocks.STONE),
+            new ItemStack(Blocks.STONE, 1, 1),
+            new ItemStack(Blocks.STONE, 1, 2),
+            new ItemStack(Blocks.STONE, 1, 3),
+            new ItemStack(Blocks.STONE, 1, 4),
+            new ItemStack(Blocks.STONE, 1, 5),
+            new ItemStack(Blocks.STONE, 1, 6)
+    ));
+
     public BlockPipe() {
         super("pipe", Material.WOOD, MapColor.WOOD);
         this.setHardness(1.0F);
         this.setResistance(2.0F);
-        this.setSoundType(SoundType.WOOD);
+        this.setSoundType(SoundType.GLASS);
 
         this.setDefaultState(this.getBlockState().getBaseState()
                 .withProperty(NORTH, false)
@@ -155,8 +172,10 @@ public class BlockPipe extends BlockWoodenVariation {
             return this.handleFluidHandlerActivate(playerIn, hand, pipe, fluidHandler);
         }
 
-        if (playerIn.getHeldItem(hand).getItem() == Item.getItemFromBlock(Blocks.PISTON) || playerIn.isSneaking()) {
-            return this.handlePistonActivate(playerIn, hand, pipe);
+        ItemStack extractUpgrade = BlockPipe.getExtractionUpgrade();
+
+        if (BlockPipe.areItemStacksEqual(playerIn.getHeldItem(hand), extractUpgrade) || playerIn.isSneaking()) {
+            return this.handleExtractUpgradeActivate(playerIn, hand, pipe);
         }
 
         return false;
@@ -190,7 +209,7 @@ public class BlockPipe extends BlockWoodenVariation {
         return true;
     }
 
-    private boolean handlePistonActivate(EntityPlayer playerIn, EnumHand hand, TilePipe pipe) {
+    private boolean handleExtractUpgradeActivate(EntityPlayer playerIn, EnumHand hand, TilePipe pipe) {
         if (playerIn.isSneaking()) {
             if (!pipe.isExtractionEnabled()) {
                 return false;
@@ -199,8 +218,9 @@ public class BlockPipe extends BlockWoodenVariation {
             pipe.setExtractionEnabled(false);
 
             if (!playerIn.capabilities.isCreativeMode) {
-                if (!playerIn.addItemStackToInventory(new ItemStack(Blocks.PISTON))) {
-                    playerIn.dropItem(new ItemStack(Blocks.PISTON), false);
+                ItemStack extractUpgrade = BlockPipe.getExtractionUpgrade();
+                if (!playerIn.addItemStackToInventory(extractUpgrade)) {
+                    playerIn.dropItem(extractUpgrade, false);
                 }
             }
 
@@ -271,9 +291,12 @@ public class BlockPipe extends BlockWoodenVariation {
     }
 
     public boolean canConnectTo(IBlockAccess world, BlockPos pipePos, EnumFacing direction, boolean excludePipe) {
-        TileEntity tileEntity = world.getTileEntity(pipePos.offset(direction));
-        return tileEntity != null && tileEntity.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite())
-                && (!excludePipe || !(tileEntity instanceof TilePipe || tileEntity instanceof TilePump));
+        TileEntity pipeTileEntity = world.getTileEntity(pipePos);
+        if (pipeTileEntity instanceof TilePipe) {
+            return ((TilePipe) pipeTileEntity).canConnectTo(direction, excludePipe);
+        }
+
+        return false;
     }
 
     public int getMetaFromState(IBlockState state) {
@@ -337,13 +360,70 @@ public class BlockPipe extends BlockWoodenVariation {
 
         TileEntity tileEntity = world.getTileEntity(pos);
         if (tileEntity instanceof TilePipe && ((TilePipe) tileEntity).isExtractionEnabled()) {
-            drops.add(new ItemStack(Blocks.PISTON));
+            ItemStack extractUpgrade = BlockPipe.getExtractionUpgrade();
+            drops.add(extractUpgrade);
         }
     }
 
     @Override
     public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face) {
         return BlockFaceShape.CENTER;
+    }
+
+    public static ItemStack getExtractionUpgrade() {
+        if (BlockPipe.extractionUpgrade == null) {
+            try {
+                String upgrade = SWPConfig.pipeExtractionItem;
+                String[] data = upgrade.split(" ");
+
+                Item item;
+                int meta = 0;
+
+                ResourceLocation resourcelocation = new ResourceLocation(data[0]);
+                item = Item.REGISTRY.getObject(resourcelocation);
+                if (item == null) {
+                    throw new IllegalArgumentException("Invalid item name");
+                }
+
+                if (data.length > 1) {
+                    try {
+                        meta = Integer.parseInt(data[1]);
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Invalid item metadata: " + data[1]);
+                    }
+                }
+
+                BlockPipe.extractionUpgrade = new ItemStack(item, 1, meta);
+
+                if (data.length > 2) {
+                    String[] nbtTagStringArray = new String[data.length - 2];
+                    System.arraycopy(data, 2, nbtTagStringArray, 0, nbtTagStringArray.length);
+                    String nbtTagString = Joiner.on(' ').join(nbtTagStringArray);
+                    try {
+                        NBTTagCompound nbtTagCompound = JsonToNBT.getTagFromJson(nbtTagString);
+                        BlockPipe.extractionUpgrade.setTagCompound(nbtTagCompound);
+                    } catch (NBTException e) {
+                        throw new IllegalArgumentException("Invalid item nbt tag: " + nbtTagString);
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to parse SWP pipe extraction upgrade item", e);
+            }
+        }
+
+        return BlockPipe.extractionUpgrade.copy();
+    }
+
+    private static boolean areItemStacksEqual(ItemStack stackA, ItemStack stackB) {
+        if (stackA.getItem() != stackB.getItem()) {
+            return false;
+        } else if (stackA.getItemDamage() != stackB.getItemDamage()) {
+            return false;
+        } else if (stackA.getTagCompound() == null && stackB.getTagCompound() != null) {
+            return false;
+        }
+
+        return (stackA.getTagCompound() == null || stackA.getTagCompound().equals(stackB.getTagCompound())) && stackA.areCapsCompatible(stackB);
     }
 
 }

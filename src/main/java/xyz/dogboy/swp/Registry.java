@@ -20,8 +20,11 @@ import net.minecraftforge.oredict.OreIngredient;
 import xyz.dogboy.swp.blocks.BlockPipe;
 import xyz.dogboy.swp.blocks.BlockPump;
 import xyz.dogboy.swp.items.ItemBlockPipe;
+import xyz.dogboy.swp.items.ItemBlockWoodenVariation;
 import xyz.dogboy.swp.tiles.TilePipe;
 import xyz.dogboy.swp.tiles.TilePump;
+
+import java.util.stream.Stream;
 
 @GameRegistry.ObjectHolder(Reference.modid)
 @Mod.EventBusSubscriber(modid = Reference.modid)
@@ -54,23 +57,30 @@ public class Registry {
 
     @SubscribeEvent
     public static void registerRecipes(RegistryEvent.Register<IRecipe> event) {
-        for (ItemStack plank : SimpleWoodenPipes.getAllPlanks()) {
-            Ingredient plankIngredient = Ingredient.fromStacks(plank);
-            Ingredient glassIngredient = new OreIngredient("blockGlass");
+        Stream.concat(SimpleWoodenPipes.getAllPlanks().stream(), BlockPipe.stoneVariants.stream())
+                .map(baseBlock -> {
+                    Ingredient baseBlockIngredient = Ingredient.fromStacks(baseBlock);
+                    Ingredient glassIngredient = new OreIngredient("blockGlass");
 
-            NonNullList<Ingredient> ingredients = NonNullList.from(plankIngredient,
-                    plankIngredient, glassIngredient, plankIngredient,
-                    plankIngredient, glassIngredient, plankIngredient,
-                    plankIngredient, glassIngredient, plankIngredient
-            );
+                    ItemStack output = ((ItemBlockWoodenVariation) Registry.PIPE_ITEM).getWithBaseBlock(baseBlock);
+                    output.setCount(6);
 
-            ItemStack output = ((ItemBlockPipe) Registry.PIPE_ITEM).getWithBaseBlock(plank);
-            output.setCount(6);
+                    return Registry.getRecipe(
+                            String.format("pipe_%s_%s_%d", baseBlock.getItem().getRegistryName().getResourceDomain(),
+                                    baseBlock.getItem().getRegistryName().getResourcePath(), baseBlock.getMetadata()),
+                            output,
 
-            ShapedRecipes recipe = new ShapedRecipes("", 3, 3, ingredients, output);
-            event.getRegistry().register(recipe.setRegistryName(new ResourceLocation(Reference.modid, String.format("pipe_%s_%s_%d",
-                    plank.getItem().getRegistryName().getResourceDomain(), plank.getItem().getRegistryName().getResourcePath(), plank.getMetadata()))));
-        }
+                            baseBlockIngredient, glassIngredient, baseBlockIngredient,
+                            baseBlockIngredient, glassIngredient, baseBlockIngredient,
+                            baseBlockIngredient, glassIngredient, baseBlockIngredient
+                    );
+                })
+                .forEach(event.getRegistry()::register);
+    }
+
+    private static IRecipe getRecipe(String id, ItemStack output, Ingredient... ingredients) {
+        ShapedRecipes recipe = new ShapedRecipes("", 3, 3, NonNullList.from(ingredients[0], ingredients), output);
+        return recipe.setRegistryName(new ResourceLocation(Reference.modid, id));
     }
 
 }
