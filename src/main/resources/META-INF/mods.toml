@@ -1,0 +1,36 @@
+modLoader="javafml" #mandatory
+loaderVersion="[33,)" #mandatory This is typically bumped every Minecraft version by Forge. See our download page for lists of versions.
+license="GPL 3.0"
+[[mods]] #mandatory
+modId="simplewoodenpipes" #mandatory
+version="${file.jarVersion}" #mandatory
+displayName="Simple Wooden Pipes" #mandatory
+logoFile="assets/simplewoodenpipes/logo.png" #optional
+# A text field displayed in the mod UI
+credits="" #optional
+# A text field displayed in the mod UI
+authors="Dogboy21, agnor99" #optional
+# The description text for the mod (multi line!) (#mandatory)
+description='''
+Simple Wooden Pipes
+'''
+# A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
+[[dependencies.simplewoodenpipes]] #optional
+    # the modid of the dependency
+    modId="forge" #mandatory
+    # Does this dependency have to exist - if not, ordering below must be specified
+    mandatory=true #mandatory
+    # The version range of the dependency
+    versionRange="[33,)" #mandatory
+    # An ordering relationship for the dependency - BEFORE or AFTER required if the relationship is not mandatory
+    ordering="NONE"
+    # Side this dependency is applied on - BOTH, CLIENT or SERVER
+    side="BOTH"
+# Here's another dependency
+[[dependencies.simplewoodenpipes]]
+    modId="minecraft"
+    mandatory=true
+# This version range declares a minimum of the current minecraft version up to but not including the next major version
+    versionRange="[1.16.2,1.17)"
+    ordering="NONE"
+    side="BOTH"

@@ -1,0 +1,115 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "simplewoodenpipes:block/birch_pipe_middle"
+      }
+    },
+    {
+      "when": {
+        "north": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/birch_pipe_side"
+      }
+    },
+    {
+      "when": {
+        "extract_north": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/pipe_extraction"
+      }
+    },
+    {
+      "when": {
+        "east": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/birch_pipe_side",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "extract_east": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/pipe_extraction",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "south": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/birch_pipe_side",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "extract_south": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/pipe_extraction",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "west": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/birch_pipe_side",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "extract_west": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/pipe_extraction",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "up": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/birch_pipe_side",
+        "x": -90
+      }
+    },
+    {
+      "when": {
+        "extract_up": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/pipe_extraction",
+        "x": -90
+      }
+    },
+    {
+      "when": {
+        "down": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/birch_pipe_side",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "extract_down": "true"
+      },
+      "apply": {
+        "model": "simplewoodenpipes:block/pipe_extraction",
+        "x": 90
+      }
+    }
+  ]
+}

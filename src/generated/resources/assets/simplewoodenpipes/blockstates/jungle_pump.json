@@ -1,0 +1,14 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "simplewoodenpipes:block/pump_unconnected"
+      }
+    },
+    {
+      "apply": {
+        "model": "simplewoodenpipes:block/jungle_pump"
+      }
+    }
+  ]
+}
